@@ -32,3 +32,41 @@ def get_user_full_name(user_id):
         return result[0]
     else:
         return "沒找到"
+
+def get_subject_name(user_id):
+    conn = connect_to_db()
+    cursor = conn.cursor()
+
+    # 查詢使用者的 department
+    department_query = "SELECT department FROM users WHERE id = ?"
+    cursor.execute(department_query, (user_id,))
+    department_result = cursor.fetchone()
+
+    if department_result:
+        department = department_result[0]
+
+        # 根據 department 查詢 subject 表格的 name
+        subject_query = "SELECT name FROM subject WHERE department = ?"
+        cursor.execute(subject_query, (department,))
+        subject_results = cursor.fetchall()
+
+        # 將 subject 的 name 存入一個列表中
+        subject_names = [result[0] for result in subject_results]
+    else:
+        subject_names = []
+
+    conn.close()
+
+    return subject_names
+
+def get_subject_teacher(user_id):
+    conn = connect_to_db()
+    cursor = conn.cursor()
+
+    query = "SELECT name FROM subject WHERE t_id = ?"
+    cursor.execute(query, (user_id,))
+    subject_results = cursor.fetchall()
+    subject_names = [result[0] for result in subject_results]
+
+    conn.close()
+    return subject_names

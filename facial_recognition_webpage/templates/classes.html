@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>線上教室</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: -webkit-linear-gradient(top left, #50a3a2 0%, #53e3a6 100%);
+            background: -moz-linear-gradient(top left, #50a3a2 0%, #53e3a6 100%);
+            background: -o-linear-gradient(top left, #50a3a2 0%, #53e3a6 100%);
+            background: linear-gradient(to bottom right, #50a3a2 0%, #53e3a6 100%);
+            font-family: Arial, sans-serif;
+            color: #ffffff;
+        }
+
+        h1 {
+            margin-top: 50px;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .p1 {
+            text-align: center;
+        }
+
+        .back-button {
+            background-color: #53e3a6;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            text-decoration: none;
+            color: white;
+            margin-left: 10px;
+            border: 2px solid #40846e;
+        }
+
+        .back-button:hover {
+            background-color: #02cb90;
+            transform: scale(1.1); /* 滑鼠移過時放大 */
+        }
+
+        .roll-call {
+            background-color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            text-decoration: none;
+            color: #53e3a6;
+            margin-top: 20px;
+            display: inline-block;
+            transition-duration: 0.25s;
+            border: none;
+        }
+
+        .roll-call:hover {
+            background-color: rgb(245, 247, 249);
+            transform: scale(1.1);
+        }
+
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            background: -webkit-linear-gradient(top left, #40846e 0%, #4ecf7a 100%);
+            background: -moz-linear-gradient(top left, #40846e 0%, #4ecf7a 100%);
+            background: -o-linear-gradient(top left, #40846e 0%, #4ecf7a 100%);
+            background: linear-gradient(to bottom right, #40846e 0%, #4ecf7a 100%);
+            padding: 14px 24px;
+            border-radius: 20px;
+        }
+
+        .record-button {
+            background-color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: none;
+            color: #53e3a6;
+            margin-left: 10px;
+            transition-duration: 0.25s;
+            border: 2px solid #40846e;
+        }
+
+        .record-button:hover {
+            background-color: rgb(245, 247, 249);
+            transform: scale(1.1);
+        }
+
+        .logout-button {
+            background-color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: none;
+            color: #53e3a6;
+            margin-left: 10px;
+            transition-duration: 0.25s;
+            border: 2px solid #40846e;
+        }
+
+        .logout-button:hover {
+            background-color: rgb(245, 247, 249);
+            transform: scale(1.1);
+        }
+
+        #face-image {
+            padding: 10px;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.4), 0 6px 20px 0 rgba(0, 0, 0, 0.37);
+            border-radius: 10px;
+            border: 2px solid #333333;
+        }
+
+        img {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        .container {
+            text-align: center;
+            padding: 10px 20px;
+        }
+
+        #face-image .container {
+            color: #53e3a6;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        function showMessage() {
+            document.getElementById("face-message").innerHTML = "將臉部靠近鏡頭，待辨識到人臉後眨眼即可完成簽到；若逾時未完成則簽到失敗";
+        }
+    </script>
+    <div>
+        <h1>{{ subject }}</h1>
+        {% if full_name %}
+            <div class="user-info">
+                歡迎！{{ full_name }}
+                {% if identity == "teacher" %}
+                    教授
+                {% endif %}
+                <a href="/record" class="record-button">簽到記錄</a>
+                <a href="/logout" class="logout-button">登出</a>
+            </div>
+        {% endif %}
+        <div id="face-image" class="polaroid">>
+            <img src="{{ url_for('face_result') }}" width="100%">
+            <div class="container">
+                <p id="face-message"></p>
+            </div>
+        </div>
+        <br>
+        <div class="p1">
+            <br>
+            <form action="/classes" method="POST">
+                {% if identity == "student" %}
+                    <button type="submit" class="button roll-call" name="sign_in"  onclick="showMessage()">簽到</button>
+                {% endif %}
+            <a href="/home" class="button back-button">返回</a>
+            </form>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                <script>
+                  alert('{{ messages[0] }}');
+                </script>
+              {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+</body>
+</html>

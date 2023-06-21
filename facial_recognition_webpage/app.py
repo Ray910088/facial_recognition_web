@@ -6,16 +6,23 @@ import cv2
 import numpy as np
 import os
 import dlib
-from db import connect_to_db, get_user_full_name
+from datetime import datetime
+from db import connect_to_db, get_user_full_name, get_subject_name, get_subject_teacher
 from face_recognition import face_recognition_eye_blink, face_recognition_eye_blink_img
 
 app = Flask(__name__)
-camera = None
 app.secret_key = 'yu_jay_is_handsome'
 
-def capture_by_frames():
+camera = None
+
+def open_camera():
     global camera
     camera = cv2.VideoCapture(0)
+    camera.set(3, 640)  # 設定攝像頭寬度
+    camera.set(4, 480)  # 設定攝像頭高度
+    return camera
+
+def capture_by_frames(camera):
     detector = cv2.CascadeClassifier('model_landmarks/haarcascade_frontalface_default.xml')
 
     while True:
@@ -38,7 +45,6 @@ def capture_by_frames():
 
 @app.route('/')
 def index():
-    global camera
     if camera is not None:
         camera.release()  # 釋放鏡頭資源
 
@@ -63,6 +69,7 @@ def login():
             # 驗證成功，設置 session
             session['user_id'] = result[1]
             session['user_identity'] = result[8]
+            print(result[8])
             return redirect('/home')
         else:
             # 驗證失敗，返回登入頁面並顯示錯誤訊息
@@ -71,20 +78,65 @@ def login():
 
     return render_template('login.html')
 
-@app.route('/home', methods=['GET', 'POST'])
+@app.route('/home')
 def home():
     user_id = session.get('user_id')
+    user_identity = session.get('user_identity')
     full_name = get_user_full_name(user_id)
+    if user_identity == 'student':
+        subject_names = get_subject_name(user_id)
+        print(subject_names)
+    elif user_identity == 'teacher':
+        subject_names = get_subject_teacher(user_id)
+        print(subject_names)
+
+    return render_template('home.html', full_name=full_name, identity=user_identity, subject_names=subject_names)
+
+@app.route('/classes', methods=['GET', 'POST'])
+def classes():
+    user_id = session.get('user_id')
+    user_identity = session.get('user_identity')
+    full_name = get_user_full_name(user_id)
+    if session.get('subject'):
+        subject = session.get('subject')
 
     if request.method == 'POST':
-        recognition_name = face_recognition_eye_blink()
-        print(full_name, recognition_name)
-        if full_name == recognition_name:
-            flash('簽到成功', 'success')
+        if 'subject' in request.form:
+            subject = request.form['subject']
+            session['subject'] = subject
         else:
-            flash('簽到失敗', 'error')
+            subject = session.get('subject')
+            recognition_name = face_recognition_eye_blink(camera)
+            print(full_name, recognition_name)
+            if full_name == recognition_name:
+                flash('簽到成功', 'success')
 
-    return render_template('home.html', full_name=full_name)
+                # 連接到資料庫
+                conn = connect_to_db()
+                cursor = conn.cursor()
+
+                # 獲取當前日期和時間
+                now = datetime.now()
+                date_time = now.strftime('%Y-%m-%d %H:%M:%S')
+
+                # 插入到 roll_call_record 表中
+                query = "INSERT INTO roll_call_record (stu_id, sub_name, date_time) VALUES (?, ?, ?)"
+                cursor.execute(query, (user_id, subject, date_time,))
+                conn.commit()  # 提交資料
+                # 插入到 temp_record 表中
+                query2 = "INSERT INTO temp_record (stu_id, sub_name, date_time) VALUES (?, ?, ?)"
+                cursor.execute(query2, (user_id, subject, date_time,))
+                conn.commit()  # 提交資料
+
+                # 關閉資料庫連接
+                if conn:
+                    conn.close()
+
+            else:
+                flash('簽到失敗', 'error')
+
+    return render_template('classes.html', full_name=full_name, identity=user_identity, subject=subject)
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -108,7 +160,7 @@ def register():
 
             # 新增資料
             cursor.execute(
-                "INSERT INTO users (department, id, password, sex, full_name, email, phone, address, identity, su) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '學生', 'F')",
+                "INSERT INTO users (department, id, password, sex, full_name, email, phone, address, identity, su) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'student', 'F')",
                 (department, id, password, gender, full_name, email, phone, address))
 
             # 提交變更
@@ -130,8 +182,6 @@ def register():
 
 @app.route('/detect_face')
 def detect_face():
-    global camera
-    camera = cv2.VideoCapture(0)
     detector = cv2.CascadeClassifier('model_landmarks/haarcascade_frontalface_default.xml')
     count = 0
     id = request.args.get('id')
@@ -186,13 +236,46 @@ def train_model_route():
     print("\n訓練出{0}張臉".format(len(np.unique(id))))
     return redirect('/')
 
+@app.route('/record')
+def record():
+    # 獲取當前使用者的 ID 和科目
+    user_id = session.get('user_id')
+    subject = session.get('subject')
+    user_identity = session.get('user_identity')
+    full_name = get_user_full_name(user_id)
+
+    # 連接到資料庫
+    conn = connect_to_db()
+    cursor = conn.cursor()
+
+    if user_identity == "student":
+        # 查詢 roll_call_record 表中特定學生和該科目的簽到記錄
+        query = "SELECT date_time FROM roll_call_record WHERE stu_id = ? AND sub_name = ?"
+        cursor.execute(query, (user_id, subject))
+        records = cursor.fetchall()
+
+    elif user_identity == "teacher":
+        # 查詢 roll_call_record 表中所有學生和該科目的簽到記錄
+        query = """
+                SELECT roll_call_record.stu_id, users.full_name, roll_call_record.date_time
+                FROM roll_call_record
+                INNER JOIN users ON roll_call_record.stu_id = users.id
+                WHERE roll_call_record.sub_name = ?
+            """
+        cursor.execute(query, (subject,))
+        records = cursor.fetchall()
+
+    conn.close()
+
+    return render_template('record.html',full_name=full_name, subject=subject, identity=user_identity, records=records)
+
 @app.route('/video_capture')
 def video_capture():
-    return Response(capture_by_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(capture_by_frames(open_camera()), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/face_result')
 def face_result():
-    return Response(face_recognition_eye_blink_img(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(face_recognition_eye_blink_img(open_camera()), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/logout')
 def logout():

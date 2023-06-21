@@ -8,99 +8,102 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            background: -webkit-linear-gradient(top left, #50a3a2 0%, #53e3a6 100%);
+            background: -moz-linear-gradient(top left, #50a3a2 0%, #53e3a6 100%);
+            background: -o-linear-gradient(top left, #50a3a2 0%, #53e3a6 100%);
+            background: linear-gradient(to bottom right, #50a3a2 0%, #53e3a6 100%);
+            font-family: Arial, sans-serif;
+            color: #ffffff;
         }
 
         h1 {
             margin-top: 50px;
             text-align: center;
-        }
-
-        .p1 {
-            text-align: center;
-        }
-
-        .back-button {
-            background-color: #02F78E;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 16px;
-            font-weight: bold;
-            text-decoration: none;
             color: #ffffff;
-        }
-
-        .back-button:hover {
-            background-color: #02cb90; /* 懸停時的背景顏色 */
-        }
-
-        .roll-call {
-            background-color: #02C874;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 16px;
-            font-weight: bold;
-            text-decoration: none;
-            color: #ffffff;
-            margin-right: 10px;
-        }
-
-        .roll-call:hover {
-            background-color: #037f56; /* 懸停時的背景顏色 */
         }
 
         .user-info {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 20px;
+            right: 20px;
             font-size: 16px;
             font-weight: bold;
             color: #ffffff;
-            background-color: #02C874;
-            padding: 10px 20px;
+            background: -webkit-linear-gradient(top left, #40846e 0%, #4ecf7a 100%);
+            background: -moz-linear-gradient(top left, #40846e 0%, #4ecf7a 100%);
+            background: -o-linear-gradient(top left, #40846e 0%, #4ecf7a 100%);
+            background: linear-gradient(to bottom right, #40846e 0%, #4ecf7a 100%);
+            padding: 14px 24px;
             border-radius: 20px;
         }
 
         .logout-button {
-            background-color: #00E3E3;
+            background-color: #ffffff;
             padding: 6px 12px;
             border-radius: 10px;
             font-size: 14px;
             font-weight: bold;
             text-decoration: none;
-            color: #ffffff;
+            color: #53e3a6;
             margin-left: 10px;
+            transition-duration: 0.25s;
+            border: 2px solid #40846e;
         }
 
         .logout-button:hover {
-            background-color: #00b7c6; /* 懸停時的背景顏色 */
+            background-color: rgb(245, 247, 249);
+            transform: scale(1.1);
+        }
+
+        .subject-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
+
+        .subject-button {
+            background-color: #ffffff;
+            padding: 14px 24px;
+            border-radius: 20px;
+            font-size: 22px;
+            font-weight: bold;
+            text-decoration: none;
+            color: #53e3a6;
+            margin-bottom: 20px;
+            transition-duration: 0.25s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 2px solid #40846e;
+        }
+
+        .subject-button:hover {
+            background-color: rgb(245, 247, 249);
+            transform: scale(1.1);
         }
     </style>
 </head>
 <body>
     <div>
-        <h1>歡迎</h1>
+        <h1>課程清單</h1>
         {% if full_name %}
-        <div class="user-info">
-            歡迎！{{ full_name }}
-            <a href="/logout" class="logout-button">登出</a>
-        </div>
+            <div class="user-info">
+                歡迎！{{ full_name }}
+                {% if identity == "teacher" %}
+                    教授
+                {% endif %}
+                <a href="/logout" class="logout-button">登出</a>
+            </div>
         {% endif %}
-        <img src="{{ url_for('face_result') }}" width="100%">
-        <br>
-        <div class="p1">
-            <br>
-            <form action="/home" method="POST">
-              <button type="submit" class="button roll-call" name="sign_in">簽到</button>
-            <a href="/" class="button back-button">返回</a>
-            </form>
-            {% with messages = get_flashed_messages() %}
-              {% if messages %}
-                <script>
-                  alert('{{ messages[0] }}');
-                </script>
-              {% endif %}
-            {% endwith %}
-        </div>
+        <form id="subject-form" method="POST" action="/classes">
+            {% if subject_names %}
+                <div class="subject-buttons">
+                    {% for subject_name in subject_names %}
+                        <button type="submit" class="subject-button" name="subject" value="{{ subject_name }}">{{ subject_name }}</button>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </form>
     </div>
 </body>
 </html>
