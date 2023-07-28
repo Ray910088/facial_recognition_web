@@ -38,16 +38,16 @@ def get_subject_name(user_id):
     cursor = conn.cursor()
 
     # 查詢使用者的 department
-    department_query = "SELECT department FROM users WHERE id = ?"
+    department_query = "SELECT grade FROM users WHERE id = ?"
     cursor.execute(department_query, (user_id,))
     department_result = cursor.fetchone()
 
     if department_result:
-        department = department_result[0]
+        grade = department_result[0]
 
         # 根據 department 查詢 subject 表格的 name
-        subject_query = "SELECT name FROM subject WHERE department = ?"
-        cursor.execute(subject_query, (department,))
+        subject_query = "SELECT name FROM subject WHERE grade = ?"
+        cursor.execute(subject_query, (grade,))
         subject_results = cursor.fetchall()
 
         # 將 subject 的 name 存入一個列表中

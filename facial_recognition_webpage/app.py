@@ -68,8 +68,8 @@ def login():
         if result:
             # 驗證成功，設置 session
             session['user_id'] = result[1]
-            session['user_identity'] = result[8]
-            print(result[8])
+            session['user_identity'] = result[9]
+            print(result[9])
             return redirect('/home')
         else:
             # 驗證失敗，返回登入頁面並顯示錯誤訊息
@@ -86,26 +86,101 @@ def home():
     if user_identity == 'student':
         subject_names = get_subject_name(user_id)
         print(subject_names)
+
+        # 取得當前日期時間
+        current_day = datetime.now().strftime('%w')
+        current_time = datetime.now().strftime('%H:%M')
+        print(current_day)
+        print(current_time)
+
+        conn = connect_to_db()
+        cursor = conn.cursor()
+
+        for subject in subject_names:
+            # 資料庫中有欄位名稱為start和finish，分別儲存課程開始和結束時間
+            query = "SELECT * FROM subject WHERE day = ? AND start <= ? AND finish >= ? AND name = ?"
+            cursor.execute(query, (current_day, current_time, current_time, subject))
+            result = cursor.fetchone()
+            if result is not None:
+                break
+
+        if result:
+            # 顯示當下有課的課程資訊，再根據需要做相應的處理
+            print(f"你目前有課程 '{subject}' 在 {result[5]} 開始，即將前往該課程並執行臉部辨識簽到！")
+            session['subjectMain'] = subject
+        else:
+            print("你目前沒課喔！")
+
+        conn.close()
+
     elif user_identity == 'teacher':
         subject_names = get_subject_teacher(user_id)
         print(subject_names)
 
-    return render_template('home.html', full_name=full_name, identity=user_identity, subject_names=subject_names)
+        # 取得當前日期時間
+        current_day = datetime.now().strftime('%w')
+        current_time = datetime.now().strftime('%H:%M')
+        print(current_day)
+        print(current_time)
+
+        conn = connect_to_db()
+        cursor = conn.cursor()
+
+        for subject in subject_names:
+            # 資料庫中有欄位名稱為start和finish，分別儲存課程開始和結束時間
+            query = "SELECT * FROM subject WHERE day = ? AND start <= ? AND finish >= ? AND name = ?"
+            cursor.execute(query, (current_day, current_time, current_time, subject))
+            result = cursor.fetchone()
+            if result is not None:
+                break
+
+        if result:
+            # 顯示當下有課的課程資訊，再根據需要做相應的處理
+            print(f"您目前有課程 '{subject}' 在 {result[5]} 開始，即將前往該課程頁面！")
+            session['subjectMain'] = subject
+        else:
+            print("您目前沒課喔！")
+
+        conn.close()
+
+    return render_template('home.html', full_name=full_name, identity=user_identity, subject_names=subject_names, result=result)
+
+@app.route('/courseList')
+def courseList():
+    if request.referrer == "http://127.0.0.1:5000/record":
+        referrer = session.get('referrer')
+    else:
+        referrer = request.referrer
+        session['referrer'] = referrer
+    print(referrer)
+
+    user_id = session.get('user_id')
+    user_identity = session.get('user_identity')
+    full_name = get_user_full_name(user_id)
+    if user_identity == 'student':
+        subject_names = get_subject_name(user_id)
+        print(subject_names)
+
+    elif user_identity == 'teacher':
+        subject_names = get_subject_teacher(user_id)
+        print(subject_names)
+
+    return render_template('courseList.html', full_name=full_name, identity=user_identity, subject_names=subject_names, referrer=referrer)
 
 @app.route('/classes', methods=['GET', 'POST'])
 def classes():
     user_id = session.get('user_id')
     user_identity = session.get('user_identity')
     full_name = get_user_full_name(user_id)
-    if session.get('subject'):
-        subject = session.get('subject')
+    if session.get('subjectMain'):
+        subject = session.get('subjectMain')
 
     if request.method == 'POST':
-        if 'subject' in request.form:
-            subject = request.form['subject']
-            session['subject'] = subject
+        if 'subjectMain' in request.form:
+            subject = request.form['subjectMain']
+            session['subjectMain'] = subject
         else:
-            subject = session.get('subject')
+            subject = session.get('subjectMain')
             recognition_name = face_recognition_eye_blink(camera)
             print(full_name, recognition_name)
             if full_name == recognition_name:
@@ -142,6 +217,7 @@ def classes():
 def register():
     if request.method == 'POST':
         department = request.form['department']
+        grade = request.form['grade']
         id = request.form['id']
         password = request.form['password']
         gender = request.form['gender']
@@ -149,7 +225,7 @@ def register():
         email = request.form['email']
         phone = request.form['phone']
         address = request.form['address']
-        print(department, id, password, gender, full_name, email, phone, address)
+        print(department, grade, id, password, gender, full_name, email, phone, address)
 
         # 連接到資料庫
         conn = connect_to_db()
@@ -160,8 +236,8 @@ def register():
 
             # 新增資料
             cursor.execute(
-                "INSERT INTO users (department, id, password, sex, full_name, email, phone, address, identity, su) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'student', 'F')",
-                (department, id, password, gender, full_name, email, phone, address))
+                "INSERT INTO users (department, id, password, grade, sex, full_name, email, phone, address, identity, su) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'student', 'F')",
+                (department, id, password, grade, gender, full_name, email, phone, address))
 
             # 提交變更
             conn.commit()
@@ -236,8 +312,13 @@ def train_model_route():
     print("\n訓練出{0}張臉".format(len(np.unique(id))))
     return redirect('/')
 
-@app.route('/record')
+@app.route('/record', methods=['GET', 'POST'])
 def record():
+    if request.method == 'POST':
+        if 'subject' in request.form:
+            subject = request.form['subject']
+            session['subject'] = subject
+
     # 獲取當前使用者的 ID 和科目
     user_id = session.get('user_id')
     subject = session.get('subject')

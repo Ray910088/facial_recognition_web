@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>歡迎</title>
+    <title>簽到記錄查詢</title>
     <style>
         body {
             display: flex;
@@ -56,7 +56,7 @@
             transform: scale(1.1);
         }
 
-        .record-buttons {
+        .subject-buttons {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -64,7 +64,7 @@
             margin-bottom: 40px;
         }
 
-        .record-button {
+        .subject-button {
             background-color: #ffffff;
             padding: 14px 24px;
             border-radius: 20px;
@@ -78,39 +78,34 @@
             border: 2px solid #40846e;
         }
 
-        .record-button:hover {
+        .subject-button:hover {
             background-color: rgb(245, 247, 249);
+            transform: scale(1.1);
+        }
+
+        .back-button {
+            background-color: #53e3a6;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            text-decoration: none;
+            color: white;
+            margin-bottom: 20px;
+            transition-duration: 0.25s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 2px solid #40846e;
+        }
+
+        .back-button:hover {
+            background-color: #02cb90;
             transform: scale(1.1);
         }
     </style>
 </head>
 <body>
-    <script>
-        function showCourse() {
-            // 使用 JSON.stringify() 將 result 轉換為字串
-            var subject = "{{ result[0] }}";
-            var startTime = "{{ result[5] }}";
-            var message = '您目前有課程 ' + subject + ' 在 ' + startTime + ' 開始，即將前往該課程並執行臉部辨識簽到！';
-            alert(message);
-            window.location.href = '/classes';
-        }
-
-        function showCourseT() {
-            // 使用 JSON.stringify() 將 result 轉換為字串
-            var subject = "{{ result[0] }}";
-            var startTime = "{{ result[5] }}";
-            var message = '您目前有課程 ' + subject + ' 在 ' + startTime + ' 開始，即將前往該課程頁面！';
-            alert(message);
-            window.location.href = '/classes';
-        }
-
-        function showAlert() {
-            var message = '您目前沒課喔！';
-            alert(message);
-        }
-    </script>
     <div>
-        <h1>主畫面</h1>
+        <h1>課程清單（點按可查詢簽到記錄）</h1>
         {% if full_name %}
             <div class="user-info">
                 歡迎！{{ full_name }}
@@ -121,32 +116,20 @@
             </div>
         {% endif %}
 
-        {% if result %}
-            {% if identity == "student" %}
-                <script>
-                    // 等待網頁載入後再顯示警示訊息
-                    window.onload = function() {
-                        showCourse();
-                    };
-                </script>
-            {% elif identity == "teacher" %}
-                <script>
-                    // 等待網頁載入後再顯示警示訊息
-                    window.onload = function() {
-                        showCourseT();
-                    };
-                </script>
+        <form id="subject-form" method="POST" action="/record">
+            {% if subject_names %}
+                <div class="subject-buttons">
+                    {% for subject_name in subject_names %}
+                        <button type="submit" class="subject-button" name="subject" value="{{ subject_name }}">{{ subject_name }}</button>
+                    {% endfor %}
+                </div>
             {% endif %}
-        {% else %}
-            <script>
-                // 等待網頁載入後再顯示警示訊息
-                window.onload = function() {
-                    showAlert();
-                };
-            </script>
-        {% endif %}
-        <br>
-        <a href="/courseList" class="record-button">簽到記錄</a>
+        </form>
+        <div style="text-align: center;">
+            {% if referrer %}
+                <a href="{{ referrer }}" class="back-button">返回</a>
+            {% endif %}
+        </div>
     </div>
 </body>
 </html>

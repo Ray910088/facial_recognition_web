@@ -16,6 +16,7 @@
             font-family: 'Source Sans Pro', sans-serif;
             color: white;
             font-weight: 300;
+            background-attachment: fixed;
         }
 
         h1 {
@@ -56,7 +57,10 @@
             margin-bottom: 5px;
         }
 
-        select,
+        select option {
+            color: black;
+        }
+
         input[type="text"],
         input[type="password"],
         input[type="radio"] {
@@ -183,7 +187,14 @@
                     <option value="資訊科學系" selected>資訊科學系</option>
                 </select>
             </div>
-            <br>
+            <div>
+                <label for="grade">班級：</label>
+                <select name="grade" id="grade" class="input">
+                    <option value="資二甲" selected>資二甲</option>
+                    <option value="資三甲" selected>資三甲</option>
+                </select>
+            </div>
+
             <input type="text" name="id" class="input" placeholder="請輸入帳號(學號)" required>
             <br>
             <input type="password" name="password" class="input" placeholder="請輸入密碼" required>
