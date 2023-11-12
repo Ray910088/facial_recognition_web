@@ -314,6 +314,12 @@ def train_model_route():
 
 @app.route('/record', methods=['GET', 'POST'])
 def record():
+    if request.referrer == "http://127.0.0.1:5000/courseList":
+        referrer = session.get('referrer')
+    else:
+        referrer = request.referrer
+        session['referrer'] = referrer
+    print(referrer)
     if request.method == 'POST':
         if 'subject' in request.form:
             subject = request.form['subject']
@@ -348,7 +354,7 @@ def record():
 
     conn.close()
 
-    return render_template('record.html',full_name=full_name, subject=subject, identity=user_identity, records=records)
+    return render_template('record.html',full_name=full_name, subject=subject, identity=user_identity, records=records, referrer=referrer)
 
 @app.route('/video_capture')
 def video_capture():
